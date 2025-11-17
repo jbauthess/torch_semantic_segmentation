@@ -1,20 +1,25 @@
+"""implementation of a synthetic dataset composed of squares of different sizes and colors"""
+
 from dataclasses import dataclass
 from random import randint
 from typing import List, Tuple
 
 import torch
+from torch import Tensor
 from torch.utils.data import Dataset
 
 
 @dataclass
 class Square:
+    """square representation"""
+
     x: int
     y: int
     s: int
-    color: Tuple[int, int, int]
+    color: Tuple[int, ...]
 
 
-class SquareDataset(Dataset):
+class SquareDataset(Dataset[tuple[Tensor, Tensor]]):
     """this class generates a dataset of images containing a square at random location"""
 
     def __init__(
@@ -43,7 +48,7 @@ class SquareDataset(Dataset):
         self.squares: List[Square] = []
 
         # generate square properties for each image in the dataset
-        for i in range(0, self.nb_img):
+        for _ in range(0, self.nb_img):
             square_size = randint(square_size_min, square_size_max)
 
             color = tuple(randint(1, 255) for _ in range(nb_channels))
@@ -63,7 +68,7 @@ class SquareDataset(Dataset):
         """
         return self.nb_img
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
         """
         Args:
             idx: Index of the sample to be retrieved.
@@ -78,9 +83,7 @@ class SquareDataset(Dataset):
         mask_img = torch.zeros((self.img_height, self.img_width))
 
         for i, c in enumerate(square.color):
-            square_img[
-                i, square.y : square.y + square.s, square.x : square.x + square.s
-            ] = c
+            square_img[i, square.y : square.y + square.s, square.x : square.x + square.s] = c
 
         mask_img[square.y : square.y + square.s, square.x : square.x + square.s] = 1
 

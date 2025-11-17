@@ -1,15 +1,18 @@
+"""implementation of a torch Dataset  loading image and mask from disk"""
+
 import os
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
-from torch import from_numpy
 import torch
+from PIL import Image
+from torch import Tensor
 from torch.utils.data import Dataset
 from torchvision.transforms.functional import to_tensor
 
 from src.dataset.mask import normalize_label
 from src.errors import MultipleFilesFoundError
+
 
 def find_image_mask_pairs(folder: Path) -> list[tuple[Path, Path]]:
     """
@@ -25,7 +28,7 @@ def find_image_mask_pairs(folder: Path) -> list[tuple[Path, Path]]:
     """
     # Separate images and masks
     images = []
-    mask_dict = {}  # Maps mask stem (e.g., "toto33_label") to mask path
+    mask_dict: dict[str, Path] = {}  # Maps mask stem (e.g., "toto33_label") to mask path
 
     for file in folder.iterdir():
         if not file.is_file():
@@ -33,7 +36,8 @@ def find_image_mask_pairs(folder: Path) -> list[tuple[Path, Path]]:
         if "_label" in file.stem:
             if file.stem in mask_dict:
                 raise MultipleFilesFoundError(
-                    f"Several masks {mask_dict[file.stem]} and {file} corresponds to the same image!"
+                    f"Several masks {mask_dict[file.stem]} and {file} corresponds \
+                      to the same image!"
                 )
             mask_dict[file.stem] = file  # Store mask stem as key
         else:
@@ -51,22 +55,40 @@ def find_image_mask_pairs(folder: Path) -> list[tuple[Path, Path]]:
     return pairs
 
 
-class CustomImageMaskDataset(Dataset):
+class CustomImageMaskDataset(Dataset[tuple[Tensor, Tensor]]):
+    """Dataset class for handling data stored as image and mask files in a folder"""
+
     def __init__(self, dataset_folder: Path):
         """
-        Dataset class for handling data stored as image and mask files in a folder
+        initialization
 
         Args:
             dataset_folder (str): Path to the directory containing images.
+
+
+                from torch.utils.data import DataLoader
+
+        HOW TO USE:
+            from src.utils.display_image_tensor import display_image_tensor, display_mask_tensor
+
+            BATCH_SIZE = 1
+
+            dataset = CustomImageMaskDataset(
+                Path(<dataset folder path>)
+            )
+            loader = DataLoader(dataset, BATCH_SIZE, True)
+
+            for image, mask in loader:
+                <do your stuff>
         """
         self.dataset_folder = dataset_folder
         # construct pairs (image file, mask file)
         self.image_mask_corresp = find_image_mask_pairs(dataset_folder)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.image_mask_corresp)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[Tensor, Tensor]:
         # Load image and mask
         img_path = os.path.join(self.dataset_folder, self.image_mask_corresp[idx][0])
         mask_path = os.path.join(self.dataset_folder, self.image_mask_corresp[idx][1])
@@ -85,25 +107,6 @@ class CustomImageMaskDataset(Dataset):
 
         # convert mask to tensor using channel first memory format
         # mask = from_numpy(mask).permute(2, 0, 1).to(dtype=float)
-        mask = from_numpy(mask).to(dtype=torch.long)
+        torch_mask = torch.from_numpy(mask).to(dtype=torch.long)
 
-        return image, mask
-
-
-if __name__ == "__main__":
-    """ Example of use of the CustomImageMaskDataset class"""
-    from torch.utils.data import DataLoader
-    from src.utils.display_image_tensor import display_image_tensor, display_mask_tensor
-
-
-    BATCH_SIZE = 1
-
-    dataset = CustomImageMaskDataset(
-        Path(r"D:\user\JB\code\u-net-pytorch\data\JSRT-segmentation\test")
-    )
-    loader = DataLoader(dataset, BATCH_SIZE, True)
-
-    for image, mask in loader:
-        display_image_tensor(image.squeeze())   # remove batch dimension
-        display_mask_tensor(mask.squeeze())
-        break
+        return image, torch_mask

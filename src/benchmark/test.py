@@ -1,7 +1,12 @@
+"""methods used to run inference and evaluate a semantic segmentation model"""
+
 import logging
+from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
 from src.benchmark.match import compute_match_maps_one_label
@@ -16,8 +21,10 @@ logger = logging.getLogger()
 def generate_mask_from_prediction(
     predicted_logits: torch.Tensor, thresh: float = 0.7
 ) -> torch.Tensor:
-    """convert semantic segmentation model output feature maps (one feature map per label) into
-    a segmentation mask (flattened mask containing pixels with different labels, one label per pixel)
+    """
+    convert semantic segmentation model output feature maps (one feature map per label) into
+    a segmentation mask (flattened mask containing pixels with different labels,
+    one label per pixel)
     """
     # the number of target labels corresponds to the number of channels in the predicted volume
     nb_labels = predicted_logits.shape[1]
@@ -41,13 +48,30 @@ def generate_mask_from_prediction(
     return pred_mask
 
 
+@dataclass
+class TestReport:
+    """options corresponding to test report generation"""
+
+    path: Path  # path of the report
+    metrics: List[TestMetrics]  # metrics contained in the report
+
+
 def test(
     device: torch.device,
     model: SemanticSegmentationModel,
-    test_dataset: Dataset,
-    metrics: List[TestMetrics] | None,
-    verbose=0,
-):
+    test_dataset: Dataset[tuple[Tensor, Tensor]],
+    test_report: TestReport | None,
+    verbose: int = 0,
+) -> None:
+    """run the model on a dataset and compute the evaluation report
+
+    Args:
+        device (torch.device): device used for inference
+        model (SemanticSegmentationModel): the model to evaluate
+        test_dataset (Dataset): the dataset on which the model is evaluated
+        metrics (List[TestMetrics] | None): the list of evaluation metrics to include in the report
+        verbose (int, optional): Display predictions on images. In {0, 1}. Defaults to 0.
+    """
     model.eval()
 
     nb_labels = model.get_nb_labels()
@@ -65,9 +89,7 @@ def test(
             # Forward pass
             outputs = model(images)  # dim (N, C, H, W)
 
-            pred_masks = generate_mask_from_prediction(outputs, 0.5).to(
-                "cpu"
-            )  # dim (N, H, W)
+            pred_masks = generate_mask_from_prediction(outputs, 0.5).to("cpu")  # dim (N, H, W)
 
             # pred_masks = torchvision.transforms.functional.resize(
             #     pred_masks,
@@ -76,7 +98,7 @@ def test(
             # )
 
             # compute metrics
-            if metrics:
+            if test_report:
                 # compute matching per label
                 for label in range(nb_labels):
                     match_maps = compute_match_maps_one_label(
@@ -96,4 +118,5 @@ def test(
                 # display_multilabel_mask_tensor(resized_mask[0].to("cpu"))
 
         # generate evaluation report
-        generate_report(match_result, metrics)
+        if test_report:
+            generate_report(match_result, test_report.metrics, test_report.path)
