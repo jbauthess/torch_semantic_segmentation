@@ -50,6 +50,8 @@ def generate_mask_from_prediction(
 
 @dataclass
 class TestReport:
+    """options corresponding to test report generation"""
+
     path: Path  # path of the report
     metrics: List[TestMetrics]  # metrics contained in the report
 

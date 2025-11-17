@@ -44,7 +44,10 @@ def add_per_label_score(
     score_name: ScoreName,
     score_value: float,
 ) -> None:
-    """Add score corresponding to a specific label in 'per_label_scores' aggregating per leabl scores"""
+    """
+    Add score corresponding to a specific label in 'per_label_scores'
+    aggregating per leabl scores
+    """
     if label not in per_label_scores.keys():
         per_label_scores[label] = []
 
@@ -52,7 +55,7 @@ def add_per_label_score(
 
 
 def generate_report(
-    match_result: MatchResult, metrics: List[TestMetrics], report_path: Path | None
+    match_result: MatchResult, metrics: List[TestMetrics], report_path: Path
 ) -> None:
     """generate the report corresponding to model performances
 
@@ -70,10 +73,12 @@ def generate_report(
             f"report path parent folder {report_path.parent} shall be an existing folder!"
         )
 
-    # global_scores contains pairs : (score name, score value) : for example : [("GLOBAL_ACCURACY", 0.93), ...]
+    # global_scores contains pairs : (score name, score value)
+    # For example : [("GLOBAL_ACCURACY", 0.93), ...]
     global_scores: list[tuple[str, float]] = []
     # per_label_scores contains for each label, list of pairs (score name, score value)
-    # For example : {0:[("RECALL", 0.82), "PRECISION":0.7)], 1:[("RECALL", 0.85), "PRECISION":0.72)], ...}
+    # For example :
+    # {0:[("RECALL", 0.82), "PRECISION":0.7)], 1:[("RECALL", 0.85), "PRECISION":0.72)], ...}
     per_label_scores: dict[int, list[tuple[str, float]]] = {}
 
     for m in metrics:
@@ -103,5 +108,5 @@ def generate_report(
 
     report = {"GLOBAL METRICS": global_scores, "PER_LABEL_METRICS": per_label_scores}
 
-    with open(str(report_path), "w") as f:
+    with open(str(report_path), "w", encoding="latin1") as f:
         json.dump(report, f)
