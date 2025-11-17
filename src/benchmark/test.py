@@ -1,6 +1,8 @@
 """methods used to run inference and evaluate a semantic segmentation model"""
 
 import logging
+from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
 import torch
@@ -46,11 +48,17 @@ def generate_mask_from_prediction(
     return pred_mask
 
 
+@dataclass
+class TestReport:
+    path: Path  # path of the report
+    metrics: List[TestMetrics]  # metrics contained in the report
+
+
 def test(
     device: torch.device,
     model: SemanticSegmentationModel,
     test_dataset: Dataset[tuple[Tensor, Tensor]],
-    metrics: List[TestMetrics] | None,
+    test_report: TestReport | None,
     verbose: int = 0,
 ) -> None:
     """run the model on a dataset and compute the evaluation report
@@ -88,7 +96,7 @@ def test(
             # )
 
             # compute metrics
-            if metrics:
+            if test_report:
                 # compute matching per label
                 for label in range(nb_labels):
                     match_maps = compute_match_maps_one_label(
@@ -108,5 +116,5 @@ def test(
                 # display_multilabel_mask_tensor(resized_mask[0].to("cpu"))
 
         # generate evaluation report
-        if metrics:
-            generate_report(match_result, metrics)
+        if test_report:
+            generate_report(match_result, test_report.metrics, test_report.path)
