@@ -17,6 +17,9 @@ from src.benchmark.metrics import (
 
 logger = logging.getLogger()
 
+GLOBAL_METRICS = "GLOBAL METRICS"
+PER_LABEL_METRICS = "PER_LABEL_METRICS"
+
 
 class TestMetrics(StrEnum):
     """metrics that can be included in the evaluation report"""
@@ -65,7 +68,7 @@ def generate_report(
         report_path (Path) : path of the report file
 
     Raises:
-        ValueError: the desired metric is not implemented
+        ValueError: the desired metric is not implemented or the report file path is invalid
     """
 
     if not (report_path.parent.exists() and report_path.parent.is_dir()):
@@ -73,8 +76,11 @@ def generate_report(
             f"report path parent folder {report_path.parent} shall be an existing folder!"
         )
 
+    if len(metrics) == 0:
+        raise ValueError("Please provide a non-empty list of metrics!")
+
     # global_scores contains pairs : (score name, score value)
-    # For example : [("GLOBAL_ACCURACY", 0.93), ...]
+    # For example : [("ACCURACY", 0.93), ...]
     global_scores: list[tuple[str, float]] = []
     # per_label_scores contains for each label, list of pairs (score name, score value)
     # For example :
@@ -106,7 +112,7 @@ def generate_report(
             case _:
                 raise ValueError("This metric is not available")
 
-    report = {"GLOBAL METRICS": global_scores, "PER_LABEL_METRICS": per_label_scores}
+    report = {GLOBAL_METRICS: global_scores, PER_LABEL_METRICS: per_label_scores}
 
     with open(str(report_path), "w", encoding="latin1") as f:
-        json.dump(report, f)
+        json.dump(report, f, indent=4)
