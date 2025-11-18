@@ -1,7 +1,10 @@
+name: CI Pipeline
+
 on: [push, pull_request]
 
 jobs:
-  pylint:
+  code_checker:
+    name: code checker
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: "/home/runner/work/torch_semantic_segmentation/torch_semantic_segmentation"
