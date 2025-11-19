@@ -17,14 +17,17 @@ jobs:
         # Use the same Python version as your project
           python-version: "3.12.9"
       - name: upgrade pip
-        run: |
+        run:
           python -m pip install --upgrade pip
           
       - name: Install Poetry
         run: pip install poetry
         
       - name: Install dependencies
-        run: poetry install  --no-interaction --no-root --all-groups
+        run: | 
+            poetry install  --no-interaction --no-root --all-groups
+            # use cpu version of torch and torchvision
+            poetry run pip install torch torchvision
         
       - name: Run pylint - checks for code quality issues, style violations, and some security concerns
         run: | 
