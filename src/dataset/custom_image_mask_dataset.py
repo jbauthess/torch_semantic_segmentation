@@ -11,44 +11,39 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import to_tensor
 
 from src.dataset.mask import normalize_label
-from src.errors import MultipleFilesFoundError
 
 
-def find_image_mask_pairs(folder: Path) -> list[tuple[Path, Path]]:
+def find_image_mask_pairs(image_folder: Path, mask_folder: Path) -> list[tuple[str, str]]:
     """
-    go through a folder and returns pairs (image, mask)
-    assuming corresponding images and masks filename follows the naming rule:
+    Pairs as (image fiename, mask filename) filenames of images and masks stored on disk
+    assuming corresponding image and mask filenames follows the naming rule:
     image : 'toto.x' -> mask : 'toto_label.y'. Image and mask file extensions may  differ
 
     Args:
-        folder: path of the folder containing images and masks
+        image_folder (Path): path of the folder containing images
+        mask_folder (str): Path to the directory containing masks.
 
     Returns:
         List of tuples (image_path, mask_path).
     """
-    # Separate images and masks
-    images = []
-    mask_dict: dict[str, Path] = {}  # Maps mask stem (e.g., "toto33_label") to mask path
+    # get only mask names in mask folder
+    mask_dict: dict[str, str] = {}  # Maps mask stem (e.g., "toto33_label") to mask path
 
-    for file in folder.iterdir():
+    for file in mask_folder.iterdir():
         if not file.is_file():
             continue
-        if "_label" in file.stem:
-            if file.stem in mask_dict:
-                raise MultipleFilesFoundError(
-                    f"Several masks {mask_dict[file.stem]} and {file} corresponds \
-                      to the same image!"
-                )
-            mask_dict[file.stem] = file  # Store mask stem as key
-        else:
-            images.append(file)
+        if "_label" in file.stem:  # keep only mask file (i.e. with the _label suffix)
+            mask_dict[file.stem] = file.name  # Store mask stem as key
 
     # Match images to masks
     pairs = []
-    for image in images:
+    for image in image_folder.iterdir():
+        if not file.is_file():
+            continue
+
         mask_stem = f"{image.stem}_label"
         if mask_stem in mask_dict:
-            pairs.append((image, mask_dict[mask_stem]))
+            pairs.append((image.name, mask_dict[mask_stem]))
         else:
             raise FileNotFoundError(f"No mask found for {image.name}")
 
@@ -56,19 +51,23 @@ def find_image_mask_pairs(folder: Path) -> list[tuple[Path, Path]]:
 
 
 class CustomImageMaskDataset(Dataset[tuple[Tensor, Tensor]]):
-    """Dataset class for handling data stored as image and mask files in a folder"""
+    """Dataset class for handling data stored as image and mask files in a folder
 
-    def __init__(self, dataset_folder: Path):
+    image and mask filenames must follow the naming rule:
+    image : 'toto.x' -> mask : 'toto_label.y'. Image and mask file extensions may differ
+    """
+
+    def __init__(self, image_folder: Path, mask_folder: Path | None = None):
         """
         initialization
 
         Args:
-            dataset_folder (str): Path to the directory containing images.
-
-
-                from torch.utils.data import DataLoader
+            image_folder (str): Path to the directory containing images.
+            mask_folder (str):  Path to the directory containing masks.
+                                If None masks are stored in ilage_folder
 
         HOW TO USE:
+            from torch.utils.data import DataLoader
             from src.utils.display_image_tensor import display_image_tensor, display_mask_tensor
 
             BATCH_SIZE = 1
@@ -81,9 +80,14 @@ class CustomImageMaskDataset(Dataset[tuple[Tensor, Tensor]]):
             for image, mask in loader:
                 <do your stuff>
         """
-        self.dataset_folder = dataset_folder
-        # construct pairs (image file, mask file)
-        self.image_mask_corresp = find_image_mask_pairs(dataset_folder)
+        self.dataset_folder = image_folder
+
+        if mask_folder is None:
+            mask_folder = image_folder
+
+        self.mask_folder = mask_folder
+        # construct pairs (image filename, mask filename)
+        self.image_mask_corresp = find_image_mask_pairs(image_folder, mask_folder)
 
     def __len__(self) -> int:
         return len(self.image_mask_corresp)
@@ -91,7 +95,7 @@ class CustomImageMaskDataset(Dataset[tuple[Tensor, Tensor]]):
     def __getitem__(self, idx: int) -> tuple[Tensor, Tensor]:
         # Load image and mask
         img_path = os.path.join(self.dataset_folder, self.image_mask_corresp[idx][0])
-        mask_path = os.path.join(self.dataset_folder, self.image_mask_corresp[idx][1])
+        mask_path = os.path.join(self.mask_folder, self.image_mask_corresp[idx][1])
         image = Image.open(img_path).convert("L")
         flattened_mask = Image.open(mask_path).convert("L")  # Convert mask to grayscale
 
