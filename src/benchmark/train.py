@@ -46,7 +46,7 @@ class TrainParameters:
 def train(
     model: SemanticSegmentationModel,
     train_dataset: Dataset[tuple[Tensor, Tensor]],
-    validation_dataset: Dataset[tuple[Tensor, Tensor]],
+    validation_dataset: Dataset[tuple[Tensor, Tensor]] | None,
     train_parameters: TrainParameters,
     model_save_path: Path,
 ) -> None:
@@ -62,11 +62,18 @@ def train(
     """
     logger = getLogger()
 
+    if validation_dataset is None and train_parameters.hyperparameters.early_stopping:
+        raise ValueError("To activate early stopping you need to provide a validation dataset!")
+
     # initialize an iterable over the train set
     train_loader = DataLoader(train_dataset, train_parameters.hyperparameters.batch_size, True)
 
     # initialize an iterable over the validation set
-    val_loader = DataLoader(validation_dataset, train_parameters.hyperparameters.batch_size, True)
+    val_loader = None
+    if validation_dataset:
+        val_loader = DataLoader(
+            validation_dataset, train_parameters.hyperparameters.batch_size, True
+        )
 
     # initialise early stopping
     early_stopping = None
@@ -143,17 +150,18 @@ def train(
 
         ## compute val loss
         val_loss = 0.0
-        for data in val_loader:
-            images, masks = data
+        if val_loader:
+            for data in val_loader:
+                images, masks = data
 
-            images = images.to(train_parameters.device)
+                images = images.to(train_parameters.device)
 
-            # compute loss between model predicted mask and ground-truth mask
-            val_loss += compute_loss(
-                train_parameters.device, model, loss_estimator, images, masks
-            ).item()
+                # compute loss between model predicted mask and ground-truth mask
+                val_loss += compute_loss(
+                    train_parameters.device, model, loss_estimator, images, masks
+                ).item()
 
-        val_loss /= len(val_loader)
+            val_loss /= len(val_loader)
 
         stop_train_loop = False
         if early_stopping:
@@ -172,6 +180,9 @@ def train(
         ##
 
         ## save model weights for the best observed val loss until now
+
+        ##
+        ## log stats
         info_str = (
             f"Epoch [{epoch + 1}/{train_parameters.hyperparameters.nb_epochs}],"
             f"Loss: {epoch_loss:.4f}, Val Loss: {val_loss:.4f}"
@@ -184,7 +195,8 @@ def train(
             logger.info("Stop training early (Early Stopping)")
             break
 
-        scheduler.step(val_loss)
+        monitored_loss = val_loss if val_loader else train_loss
+        scheduler.step(monitored_loss)
         logger.info("Epoch %s, Learning Rate: %f", epoch, optimizer.param_groups[0]["lr"])
 
     writer.close()
