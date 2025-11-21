@@ -21,7 +21,7 @@ GLOBAL_METRICS = "GLOBAL METRICS"
 PER_LABEL_METRICS = "PER_LABEL_METRICS"
 
 
-class TestMetrics(StrEnum):
+class EvalMetrics(StrEnum):
     """metrics that can be included in the evaluation report"""
 
     ACCURACY = "accuracy"
@@ -58,7 +58,7 @@ def add_per_label_score(
 
 
 def generate_report(
-    match_result: MatchResult, metrics: List[TestMetrics], report_path: Path
+    match_result: MatchResult, metrics: List[EvalMetrics], report_path: Path
 ) -> None:
     """generate the report corresponding to model performances
 
@@ -89,23 +89,23 @@ def generate_report(
 
     for m in metrics:
         match m:
-            case TestMetrics.ACCURACY:
+            case EvalMetrics.ACCURACY:
                 acc = compute_pixelwise_accuracy(match_result)
                 global_scores.append((str(ScoreName.ACCURACY), acc))
 
-            case TestMetrics.RECALL_PER_LABEL:
+            case EvalMetrics.RECALL_PER_LABEL:
                 for label, recall in enumerate(compute_per_label_recall(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.RECALL, recall)
 
-            case TestMetrics.PRECISION_PER_LABEL:
+            case EvalMetrics.PRECISION_PER_LABEL:
                 for label, precision in enumerate(compute_per_label_precision(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.PRECISION, precision)
 
-            case TestMetrics.F1_SCORE_PER_LABEL:
+            case EvalMetrics.F1_SCORE_PER_LABEL:
                 for label, f1_val in enumerate(compute_per_label_f1score(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.F1_SCORE, f1_val)
 
-            case TestMetrics.IOU_PER_LABEL:
+            case EvalMetrics.IOU_PER_LABEL:
                 for label, iou in enumerate(compute_per_label_iou(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.IOU, iou)
 

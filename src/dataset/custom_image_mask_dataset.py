@@ -38,7 +38,7 @@ def find_image_mask_pairs(image_folder: Path, mask_folder: Path) -> list[tuple[s
     # Match images to masks
     pairs = []
     for image in image_folder.iterdir():
-        if not file.is_file():
+        if not image.is_file():
             continue
 
         mask_stem = f"{image.stem}_label"

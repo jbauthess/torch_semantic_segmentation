@@ -4,37 +4,21 @@ import json
 import shutil
 import tempfile
 import unittest
-from dataclasses import dataclass
 from pathlib import Path
 
-from src.benchmark.metrics import MatchResult, MatchResultOneLabel
 from src.benchmark.report import (
     GLOBAL_METRICS,
     PER_LABEL_METRICS,
+    EvalMetrics,
     ScoreName,
-    TestMetrics,
     generate_report,
 )
-
-
-@dataclass
-class FakeMatchResultOneLabel(MatchResultOneLabel):
-    """Fake version of MatchResultOneLabel used for tests"""
-
-    tp: int  # True Positives
-    fp: int  # False Positives
-    fn: int  # False Negatives
-
-
-class FakeMatchResult(MatchResult):
-    """Matching results for all labels"""
-
-    def __init__(self, *match_result_one_label: FakeMatchResultOneLabel, nb_pixels: int):
-        self.match_per_label = list(match_result_one_label)
-        self.nb_pixels = nb_pixels
+from tests.benchmark.mock_data import FakeMatchResult, FakeMatchResultOneLabel
 
 
 class TestGenerateReport(unittest.TestCase):
+    """unit-tests for generate_report() method"""
+
     def setUp(self) -> None:
         """Set up test data for the unit tests."""
 
@@ -61,11 +45,11 @@ class TestGenerateReport(unittest.TestCase):
 
         # test with the use of all possible metrics
         # 1) the report file is generated
-        generate_report(self.match_result, [m for m in TestMetrics], report_file_path)
+        generate_report(self.match_result, list(EvalMetrics), report_file_path)
         self.assertTrue(report_file_path.is_file(), "Report file should be created.")
 
         # 2) the report file contains correct metrics
-        with open(str(report_file_path)) as f:
+        with open(str(report_file_path), "r", encoding="latin1") as f:
             report_dict = json.load(f)
             self.assertListEqual(sorted(report_dict.keys()), [GLOBAL_METRICS, PER_LABEL_METRICS])
 
@@ -109,7 +93,7 @@ class TestGenerateReport(unittest.TestCase):
         invalid_report_path = Path("./invalid_path/test_report.txt")
 
         with self.assertRaises(ValueError):
-            generate_report(self.match_result, [m for m in TestMetrics], invalid_report_path)
+            generate_report(self.match_result, list(EvalMetrics), invalid_report_path)
 
 
 if __name__ == "__main__":

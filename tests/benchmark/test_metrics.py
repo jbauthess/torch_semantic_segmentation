@@ -16,6 +16,7 @@ from src.benchmark.metrics import (
     compute_precision,
     compute_recall,
 )
+from tests.benchmark.mock_data import FakeMatchResult, FakeMatchResultOneLabel
 
 
 @dataclass
@@ -165,23 +166,6 @@ def test_compute_precision(tp: int, fp: int, expected_precision: float) -> None:
         assert compute_precision(tp, fp) == expected_precision, (
             f"error computing precision for {tp=}, {fp=}"
         )
-
-
-@dataclass
-class FakeMatchResultOneLabel(MatchResultOneLabel):
-    """Fake version of MatchResultOneLabel used for tests"""
-
-    tp: int  # True Positives
-    fp: int  # False Positives
-    fn: int  # False Negatives
-
-
-class FakeMatchResult(MatchResult):
-    """Matching results for all labels"""
-
-    def __init__(self, *match_result_one_label: FakeMatchResultOneLabel, nb_pixels: int):
-        self.match_per_label = list(match_result_one_label)
-        self.nb_pixels = nb_pixels
 
 
 # test f1-score computation for a semantic segmentation problem using 2 different labels
