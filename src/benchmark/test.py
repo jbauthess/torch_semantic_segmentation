@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from src.benchmark.match import compute_match_maps_one_label
 from src.benchmark.metrics import MatchResult
-from src.benchmark.report import TestMetrics, generate_report
+from src.benchmark.report import EvalMetrics, generate_report
 from src.model.semantic_segmentation_model import SemanticSegmentationModel
 from src.utils.display_image_tensor import display_image_tensor, display_mask_tensor
 
@@ -53,7 +53,7 @@ class TestReport:
     """options corresponding to test report generation"""
 
     path: Path  # path of the report
-    metrics: List[TestMetrics]  # metrics contained in the report
+    metrics: List[EvalMetrics]  # metrics contained in the report
 
 
 def test(

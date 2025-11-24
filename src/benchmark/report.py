@@ -17,8 +17,11 @@ from src.benchmark.metrics import (
 
 logger = logging.getLogger()
 
+GLOBAL_METRICS = "GLOBAL METRICS"
+PER_LABEL_METRICS = "PER_LABEL_METRICS"
 
-class TestMetrics(StrEnum):
+
+class EvalMetrics(StrEnum):
     """metrics that can be included in the evaluation report"""
 
     ACCURACY = "accuracy"
@@ -55,7 +58,7 @@ def add_per_label_score(
 
 
 def generate_report(
-    match_result: MatchResult, metrics: List[TestMetrics], report_path: Path
+    match_result: MatchResult, metrics: List[EvalMetrics], report_path: Path
 ) -> None:
     """generate the report corresponding to model performances
 
@@ -65,7 +68,7 @@ def generate_report(
         report_path (Path) : path of the report file
 
     Raises:
-        ValueError: the desired metric is not implemented
+        ValueError: the desired metric is not implemented or the report file path is invalid
     """
 
     if not (report_path.parent.exists() and report_path.parent.is_dir()):
@@ -73,8 +76,11 @@ def generate_report(
             f"report path parent folder {report_path.parent} shall be an existing folder!"
         )
 
+    if len(metrics) == 0:
+        raise ValueError("Please provide a non-empty list of metrics!")
+
     # global_scores contains pairs : (score name, score value)
-    # For example : [("GLOBAL_ACCURACY", 0.93), ...]
+    # For example : [("ACCURACY", 0.93), ...]
     global_scores: list[tuple[str, float]] = []
     # per_label_scores contains for each label, list of pairs (score name, score value)
     # For example :
@@ -83,30 +89,30 @@ def generate_report(
 
     for m in metrics:
         match m:
-            case TestMetrics.ACCURACY:
+            case EvalMetrics.ACCURACY:
                 acc = compute_pixelwise_accuracy(match_result)
                 global_scores.append((str(ScoreName.ACCURACY), acc))
 
-            case TestMetrics.RECALL_PER_LABEL:
+            case EvalMetrics.RECALL_PER_LABEL:
                 for label, recall in enumerate(compute_per_label_recall(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.RECALL, recall)
 
-            case TestMetrics.PRECISION_PER_LABEL:
+            case EvalMetrics.PRECISION_PER_LABEL:
                 for label, precision in enumerate(compute_per_label_precision(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.PRECISION, precision)
 
-            case TestMetrics.F1_SCORE_PER_LABEL:
+            case EvalMetrics.F1_SCORE_PER_LABEL:
                 for label, f1_val in enumerate(compute_per_label_f1score(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.F1_SCORE, f1_val)
 
-            case TestMetrics.IOU_PER_LABEL:
+            case EvalMetrics.IOU_PER_LABEL:
                 for label, iou in enumerate(compute_per_label_iou(match_result)):
                     add_per_label_score(per_label_scores, label, ScoreName.IOU, iou)
 
             case _:
                 raise ValueError("This metric is not available")
 
-    report = {"GLOBAL METRICS": global_scores, "PER_LABEL_METRICS": per_label_scores}
+    report = {GLOBAL_METRICS: global_scores, PER_LABEL_METRICS: per_label_scores}
 
     with open(str(report_path), "w", encoding="latin1") as f:
-        json.dump(report, f)
+        json.dump(report, f, indent=4)
