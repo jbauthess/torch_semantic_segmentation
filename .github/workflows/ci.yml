@@ -31,7 +31,8 @@ jobs:
         
       - name: Run pylint - checks for code quality issues, style violations, and some security concerns
         run: | 
-            poetry run pylint .
+            poetry run pylint . --exit-zero
+            poetry run pylint . --errors-only
             
       - name: Run mypy - performs static type checking using type annotations
         run: |

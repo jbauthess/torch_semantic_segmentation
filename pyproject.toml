@@ -41,15 +41,20 @@ ignore = [".venv"]
 recursive = "y"
 jobs = 4                     # parallel workers
 
-# Theorically it makes the linter returned value only report Errors / Fatals. 
-# this should yield successful linting when there are only errors/refactor detected issues
+# Theorically it makes the linter exit code only report Errors / Fatals. 
+# this should yield successful linting when there are only warning/refactor detected issues
 # It does not work right now, I don't know why...
 # fail-on = ["E", "F"]
 
-# NOTE : Because the fail-on option does not work for now, we need the below workaround
-# force pylint to return 0 -> this yield github action to never fail because
+# NOTE : Because the fail-on option does not work for now, an option would be the below workaround
+# to force pylint to return 0 -> this yield github action to never fail because
 # of pylint. 
-exit-zero=true
+# exit-zero=true
+
+# We choose a better option enforced through the github action file :
+# - run pylint first with --exit-zero option to report all detected issues (including warnings, refactor...) but enforcing 0 as exit code
+# - run pylint a second time with the option --errors-only : in that case only errors are reported but if there are errors the exit code is non-0.
+# -> this will enforce that the CI process fails in case of linter errors
 
 [tool.mypy]
 exclude=[".venv"]
