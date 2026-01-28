@@ -76,7 +76,6 @@ def train(
         )
 
     # initialise early stopping
-    a = 
     early_stopping = None
     if train_parameters.hyperparameters.early_stopping:
         early_stopping = EarlyStopping(
