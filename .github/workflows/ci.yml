@@ -30,9 +30,27 @@ jobs:
             poetry run pip install torch torchvision
         
       - name: Run pylint - checks for code quality issues, style violations, and some security concerns
+        shell: cmd
         run: | 
-            poetry run pylint . --exit-zero
-            poetry run pylint . --errors-only
+        
+            # The CI linter step will fail only for pylint reporting errors or failures
+            # The console will report everything (so we can use those information to improve the code) 
+            poetry run pylint . 
+            set PYLINT_EXIT_CODE=%ERRORLEVEL%
+
+            # Check if exit code contains 1 or 2 (fatal or error)
+            set /a "ERROR_MASK = %PYLINT_EXIT_CODE% & 3"
+            if %ERROR_MASK% gtr 0 (
+            echo =================================================================================
+            echo Pylint found errors or fatal issues, failing the build.
+            echo =================================================================================
+            exit /b 1
+            ) else (
+            echo =================================================================================
+            echo Pylint found only warnings, refactors, or conventions. Not failing the build.
+            echo =================================================================================
+            exit /b 0
+)
             
       - name: Run mypy - performs static type checking using type annotations
         run: |

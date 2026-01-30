@@ -103,7 +103,7 @@ def train(
     writer.add_image("images", grid, 0)
 
     writer.flush()
-
+    a = 
     # init model layer weights
     if train_parameters.init_weights_path is None:
         # No provided weights -> init layer weights using default iniitialization strategy
