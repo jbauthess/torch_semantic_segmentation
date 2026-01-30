@@ -34,7 +34,7 @@ jobs:
         run: | 
             # The CI linter step will fail only for pylint reporting errors or failures
             # The console will report everything (so we can use those information to improve the code) 
-            poetry run pwsh -File .\run-pylint.ps1
+            poetry run pwsh -File .\run_pylint.ps1
             
             
       - name: Run mypy - performs static type checking using type annotations
