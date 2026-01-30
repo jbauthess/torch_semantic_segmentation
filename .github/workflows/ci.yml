@@ -50,7 +50,7 @@ jobs:
             echo Pylint found only warnings, refactors, or conventions. Not failing the build.
             echo =================================================================================
             exit /b 0
-)
+            )
             
       - name: Run mypy - performs static type checking using type annotations
         run: |
