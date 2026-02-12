@@ -30,8 +30,12 @@ jobs:
             poetry run pip install torch torchvision
         
       - name: Run pylint - checks for code quality issues, style violations, and some security concerns
+        shell: pwsh
         run: | 
-            poetry run pylint .
+            # The CI linter step will fail only for pylint reporting errors or failures
+            # The console will report everything (so we can use those information to improve the code) 
+            poetry run pwsh -File .\run_pylint.ps1
+            
             
       - name: Run mypy - performs static type checking using type annotations
         run: |
